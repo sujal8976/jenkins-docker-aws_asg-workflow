@@ -1,0 +1,49 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+backend/dist/
+build/
+coverage/
+coverage-local/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+.env.local
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Test / tooling caches
+.nyc_output/
+.cache/
+.vite/
+/.parcel-cache/
+/.eslintcache
+/.jest
+vite-preview.log
+
+# Misc
+.serverless/
+.vercel/
+.parcel-cache/
+.next/
+dist-*/
