@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import linksRouter from "./routes/links";
 import path from "path";
-import fs from "fs";
+// import fs from "fs";
 
 dotenv.config();
 
@@ -20,22 +20,24 @@ app.use(express.json());
 app.use("/", linksRouter);
 
 // Serve frontend static build if it exists (frontend/dist)
-const frontendDist = path.resolve(__dirname, "../../frontend/dist");
-if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
+// const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+// if (fs.existsSync(frontendDist)) {
+//   app.use(express.static(frontendDist));
 
-  // SPA fallback: serve index.html for unknown GET routes (excluding API and redirect)
-  app.get("/*", (req, res, next) => {
-    // allow API and redirect routes to continue
-    if (
-      req.path.startsWith("/r/") ||
-      req.path.startsWith("/shorten") ||
-      req.path.startsWith("/links")
-    )
-      return next();
-    res.sendFile(path.join(frontendDist, "index.html"));
-  });
-}
+//   // SPA fallback: serve index.html for unknown GET routes (excluding API and redirect)
+//   app.get("/*", (req, res, next) => {
+//     // allow API and redirect routes to continue
+//     // if (
+//     //   req.path.startsWith("/r/") ||
+//     //   req.path.startsWith("/shorten") ||
+//     //   req.path.startsWith("/links")
+//     // )
+//     //   return next();
+//     res.sendFile(path.join(frontendDist, "index.html"));
+//   });
+// }
+
+app.use(express.static(path.resolve(__dirname, "../public")));
 
 async function start() {
   await mongoose.connect(MONGO_URI);
