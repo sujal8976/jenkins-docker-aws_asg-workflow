@@ -7,6 +7,7 @@ pipeline {
         IMAGE_NAME = "url-shortner"  // Change this
         AWS_REGION = "ap-south-1"  // Change to your region
         ASG_NAME = "url-shortner-asg"
+        TARGET_GROUP_NAME = "url-shortner-target-group" // Change to your target group name if different
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
 	VITE_API_URL=credentials('lb-url')
@@ -54,6 +55,19 @@ pipeline {
                 }
             }
         }
+
+        stage('Debug AWS resources') {
+            steps {
+                script {
+                    sh """
+                        echo 'Caller identity:'
+                        aws sts get-caller-identity --output json || true
+                        echo '\nAll target groups in region:'
+                        aws elbv2 describe-target-groups --region ${AWS_REGION} --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
+                    """
+                }
+            }
+        }
         
         stage('Verify Deployment') {
             steps {
@@ -63,11 +77,16 @@ pipeline {
                         export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
                         export AWS_DEFAULT_REGION=${AWS_REGION}
                         
+                        TG_ARN=$$(aws elbv2 describe-target-groups --names ${TARGET_GROUP_NAME} --region ${AWS_REGION} --query 'TargetGroups[0].TargetGroupArn' --output text || true)
+                        if [ -z "$$TG_ARN" ]; then
+                            echo "Target group '${TARGET_GROUP_NAME}' not found in region ${AWS_REGION}."
+                            echo "Available target groups:"
+                            aws elbv2 describe-target-groups --region ${AWS_REGION} --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
+                            exit 1
+                        fi
+
                         aws elbv2 describe-target-health \
-                            --target-group-arn \$(aws elbv2 describe-target-groups \
-                                --names app-target-group \
-                                --query 'TargetGroups[0].TargetGroupArn' \
-                                --output text) \
+                            --target-group-arn "$$TG_ARN" \
                             --query 'TargetHealthDescriptions[*].[Target.Id,TargetHealth.State]' \
                             --output table
                     """
