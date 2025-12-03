@@ -45,9 +45,9 @@ pipeline {
             steps {
                 script {
                     sh """
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
+                        export AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
+                        export AWS_DEFAULT_REGION=\$AWS_REGION
                         
                         chmod +x scripts/deploy-to-asg.sh
                         ./scripts/deploy-to-asg.sh ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -63,7 +63,7 @@ pipeline {
                         echo 'Caller identity:'
                         aws sts get-caller-identity --output json || true
                         echo '\nAll target groups in region:'
-                        aws elbv2 describe-target-groups --region ${AWS_REGION} --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
+                        aws elbv2 describe-target-groups --region \$AWS_REGION --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
                     """
                 }
             }
@@ -73,20 +73,20 @@ pipeline {
             steps {
                 script {
                     sh """
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
-                        
-                        TG_ARN=$$(aws elbv2 describe-target-groups --names ${TARGET_GROUP_NAME} --region ${AWS_REGION} --query 'TargetGroups[0].TargetGroupArn' --output text || true)
-                        if [ -z "$$TG_ARN" ]; then
-                            echo "Target group '${TARGET_GROUP_NAME}' not found in region ${AWS_REGION}."
+                        export AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
+                        export AWS_DEFAULT_REGION=\$AWS_REGION
+
+                        TG_ARN=\$(aws elbv2 describe-target-groups --names \$TARGET_GROUP_NAME --region \$AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text || true)
+                        if [ -z "\$TG_ARN" ]; then
+                            echo "Target group '\$TARGET_GROUP_NAME' not found in region \$AWS_REGION."
                             echo "Available target groups:"
-                            aws elbv2 describe-target-groups --region ${AWS_REGION} --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
+                            aws elbv2 describe-target-groups --region \$AWS_REGION --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
                             exit 1
                         fi
 
                         aws elbv2 describe-target-health \
-                            --target-group-arn "$$TG_ARN" \
+                            --target-group-arn "\$TG_ARN" \
                             --query 'TargetHealthDescriptions[*].[Target.Id,TargetHealth.State]' \
                             --output table
                     """
