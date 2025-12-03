@@ -59,3 +59,4 @@ for INSTANCE_ID in $INSTANCE_IDS; do
 done
 
 echo "Deployment completed successfully!"
+
