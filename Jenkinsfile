@@ -3,11 +3,11 @@ pipeline {
     
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_USERNAME = "devsujal"  // Change this
-        IMAGE_NAME = "url-shortner"  // Change this
-        AWS_REGION = "ap-south-1"  // Change to your region
+        DOCKERHUB_USERNAME = "devsujal"  
+        IMAGE_NAME = "url-shortner"  
+        AWS_REGION = "ap-south-1"  
         ASG_NAME = "url-shortner-asg"
-        TARGET_GROUP_NAME = "url-shortner-target-group" // Change to your target group name if different
+        TARGET_GROUP_NAME = "url-shortner-target-group"
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
 	VITE_API_URL=credentials('lb-url')
@@ -48,6 +48,7 @@ pipeline {
                         export AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
                         export AWS_DEFAULT_REGION=\$AWS_REGION
+                        export ASG_NAME=\$ASG_NAME
                         
                         chmod +x scripts/deploy-to-asg.sh
                         ./scripts/deploy-to-asg.sh ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -60,10 +61,19 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo 'Caller identity:'
-                        aws sts get-caller-identity --output json || true
-                        echo '\nAll target groups in region:'
-                        aws elbv2 describe-target-groups --region \$AWS_REGION --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' --output table || true
+                        set +e
+                        echo 'Auto Scaling Group summary:'
+                        aws autoscaling describe-auto-scaling-groups \
+                            --auto-scaling-group-names \$ASG_NAME \
+                            --region \$AWS_REGION \
+                            --query 'AutoScalingGroups[0].[AutoScalingGroupName,TargetGroupARNs]' \
+                            --output table || true
+
+                        echo '\nTarget groups in region:'
+                        aws elbv2 describe-target-groups \
+                            --region \$AWS_REGION \
+                            --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' \
+                            --output table || true
                     """
                 }
             }
@@ -77,7 +87,7 @@ pipeline {
                         export AWS_SECRET_ACCESS_KEY=\$AWS_SECRET_ACCESS_KEY
                         export AWS_DEFAULT_REGION=\$AWS_REGION
 
-                        TG_ARN=\$(aws elbv2 describe-target-groups --names \$TARGET_GROUP_NAME --region \$AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text || true)
+                        TG_ARN=\$(aws elbv2 describe-target-groups --names \$TARGET_GROUP_NAME --region \$AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || true)
                         if [ -z "\$TG_ARN" ]; then
                             echo "Target group '\$TARGET_GROUP_NAME' not found in region \$AWS_REGION."
                             echo "Available target groups:"
