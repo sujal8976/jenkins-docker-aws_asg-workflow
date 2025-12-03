@@ -10,7 +10,7 @@ pipeline {
         TARGET_GROUP_NAME = "url-shortner-target-group"
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-	VITE_API_URL=credentials('lb-url')
+	    VITE_API_URL=credentials('lb-url')
     }
     
     stages {
@@ -52,28 +52,6 @@ pipeline {
                         
                         chmod +x scripts/deploy-to-asg.sh
                         ./scripts/deploy-to-asg.sh ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
-                    """
-                }
-            }
-        }
-
-        stage('Debug AWS resources') {
-            steps {
-                script {
-                    sh """
-                        set +e
-                        echo 'Auto Scaling Group summary:'
-                        aws autoscaling describe-auto-scaling-groups \
-                            --auto-scaling-group-names \$ASG_NAME \
-                            --region \$AWS_REGION \
-                            --query 'AutoScalingGroups[0].[AutoScalingGroupName,TargetGroupARNs]' \
-                            --output table || true
-
-                        echo '\nTarget groups in region:'
-                        aws elbv2 describe-target-groups \
-                            --region \$AWS_REGION \
-                            --query 'TargetGroups[*].[TargetGroupName,TargetGroupArn]' \
-                            --output table || true
                     """
                 }
             }
