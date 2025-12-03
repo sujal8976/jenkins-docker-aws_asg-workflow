@@ -8,6 +8,7 @@ export default function App() {
       <header className="header">
         <h1>Shortly</h1>
         <p>Simple, fast URL shortener</p>
+        <p>small and efficient</p>
       </header>
       <main className="container">
         <CreateForm />
